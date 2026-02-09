@@ -122,18 +122,18 @@ mise install                      # Go, Node.js, pnpm インストール
 cd web && pnpm install             # フロントエンド依存インストール
 
 # --- フロントエンド ---
-cd web && pnpm dev                 # Vite 開発サーバ起動
+cd web && pnpm dev                 # Vite 開発サーバ起動 (localhost:3000, API は Go へプロキシ)
 cd web && pnpm build               # web/dist/ にビルド
 cd web && pnpm biome check --write . # lint + format
 
 # --- バックエンド ---
-go run ./cmd/mdprev                # サーバ起動
+go run ./cmd/mdprev                # サーバ起動（ランダムポート、要 web/dist ビルド済み）
 go test ./...                      # テスト実行
 gofmt -w .                         # フォーマット
 go vet ./...                       # 静的解析
 
 # --- ビルド ---
-cd web && pnpm build && cd .. && go build -o mdprev ./cmd/mdprev
+cd web && pnpm build && cd .. && cp -r web/dist cmd/mdprev/dist && go build -o mdprev ./cmd/mdprev
 ```
 
 ## コーディング規約

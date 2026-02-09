@@ -4,6 +4,7 @@
 # Frontend
 web/node_modules/
 web/dist/
+cmd/mdprev/dist/
 
 # mise
 .mise.local.toml
