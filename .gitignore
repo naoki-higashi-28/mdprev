@@ -1,0 +1,12 @@
+# Go binary
+/mdprev
+
+# Frontend
+web/node_modules/
+web/dist/
+
+# mise
+.mise.local.toml
+
+# OS
+.DS_Store
