@@ -9,5 +9,11 @@
   },
   "linter": {
     "enabled": true
+  },
+  "css": {
+    "parser": {
+      "cssModules": false,
+      "tailwindDirectives": true
+    }
   }
 }
