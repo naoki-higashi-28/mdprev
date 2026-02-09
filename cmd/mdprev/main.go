@@ -8,33 +8,57 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
+
+	"github.com/naoki-higashi-28/mdprev/internal/dependency"
 )
 
 //go:embed all:dist
 var distFS embed.FS
 
+var defaultPort = "0"
+
 func main() {
-	addr := flag.String("addr", ":0", "listen address (e.g. :8080)")
+	host := flag.String("host", "127.0.0.1", "bind host")
+	port := flag.String("port", defaultPort, "listen port (0 for random)")
 	flag.Parse()
 
-	mux := http.NewServeMux()
+	// Determine root directory
+	root := "."
+	if flag.NArg() > 0 {
+		root = flag.Arg(0)
+	}
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		log.Fatalf("Failed to resolve root path: %v", err)
+	}
 
-	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, `{"status":"ok"}`)
-	})
+	// Verify root directory exists
+	info, err := os.Stat(absRoot)
+	if err != nil || !info.IsDir() {
+		log.Fatalf("Root path is not a valid directory: %s", absRoot)
+	}
 
+	// Setup dependencies
 	sub, err := fs.Sub(distFS, "dist")
 	if err != nil {
 		log.Fatalf("Failed to create sub filesystem: %v", err)
 	}
-	mux.Handle("GET /", http.FileServer(http.FS(sub)))
+	mux, watcher, err := dependency.NewServeMux(absRoot, sub)
+	if err != nil {
+		log.Fatalf("Failed to initialize: %v", err)
+	}
+	defer watcher.Close()
 
-	ln, err := net.Listen("tcp", *addr)
+	// Start server
+	addr := net.JoinHostPort(*host, *port)
+	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	log.Printf("Starting server on http://localhost:%d", ln.Addr().(*net.TCPAddr).Port)
+	fmt.Printf("mdprev serving %s on http://%s\n", absRoot, ln.Addr().String())
 	if err := http.Serve(ln, mux); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}

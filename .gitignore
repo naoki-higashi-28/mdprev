@@ -9,5 +9,8 @@ cmd/mdprev/dist/
 # mise
 .mise.local.toml
 
+# air
+/tmp
+
 # OS
 .DS_Store

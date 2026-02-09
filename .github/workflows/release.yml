@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: web
+
+      - name: Build frontend
+        run: pnpm build
+        working-directory: web
+
+      - name: Copy dist to embed directory
+        run: cp -r web/dist cmd/mdprev/dist
+
+      # go install 対応: dist をコミットに含めてタグを更新
+      - name: Update tag with built assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f cmd/mdprev/dist
+          git commit -m "chore: add frontend assets for ${GITHUB_REF_NAME}"
+          git tag -f "${GITHUB_REF_NAME}"
+          git push origin "${GITHUB_REF_NAME}" --force
+
+      - name: Build binaries
+        run: |
+          mkdir -p release
+          for os in linux darwin windows; do
+            for arch in amd64 arm64; do
+              ext=""
+              if [ "$os" = "windows" ]; then ext=".exe"; fi
+              output="release/mdprev-${os}-${arch}${ext}"
+              GOOS=$os GOARCH=$arch go build -o "$output" ./cmd/mdprev
+            done
+          done
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true

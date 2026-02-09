@@ -1,0 +1,11 @@
+root = "."
+
+[build]
+  cmd = "go build -o ./tmp/mdprev ./cmd/mdprev"
+  bin = "./tmp/mdprev"
+  args_bin = ["--port", "8080"]
+  include_ext = ["go"]
+  exclude_dir = ["tmp", "web", "node_modules"]
+
+[misc]
+  clean_on_exit = true
