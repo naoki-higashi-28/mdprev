@@ -53,15 +53,16 @@ export function Mermaid({ chart }: MermaidProps) {
 
   return (
     <>
-      <div
-        className="not-prose group relative my-4 flex cursor-pointer justify-center"
+      <button
+        type="button"
+        className="not-prose group relative my-4 flex w-full cursor-pointer justify-center border-none bg-transparent p-0"
         onClick={() => setModalOpen(true)}
       >
         <div ref={containerRef} />
         <div className="absolute top-2 right-2 rounded-lg bg-white/80 p-1.5 text-gray-500 opacity-0 shadow transition-opacity group-hover:opacity-100">
           <Maximize2 size={16} />
         </div>
-      </div>
+      </button>
       <MermaidModal
         open={modalOpen}
         onOpenChange={setModalOpen}

@@ -1,5 +1,12 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { RotateCcw, X, ZoomIn, ZoomOut } from "lucide-react";
+import {
+  Maximize2,
+  Minimize2,
+  RotateCcw,
+  X,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import {
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
@@ -26,44 +33,52 @@ export function MermaidModal({
 }: MermaidModalProps) {
   const [scale, setScale] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const [maximized, setMaximized] = useState(false);
   const dragging = useRef(false);
   const lastPointer = useRef({ x: 0, y: 0 });
   const areaRef = useRef<HTMLDivElement>(null);
   const diagramRef = useRef<HTMLDivElement>(null);
 
-  const clampScale = (s: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
+  const clampScale = useCallback(
+    (s: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, s)),
+    [],
+  );
 
-  const fitToView = useCallback(() => {
-    setTranslate({ x: 0, y: 0 });
-    requestAnimationFrame(() => {
-      const svg = diagramRef.current?.querySelector("svg");
-      const area = areaRef.current;
-      if (!svg || !area) {
-        setScale(1);
-        return;
-      }
-      const areaRect = area.getBoundingClientRect();
-      const svgW = svg.width.baseVal?.value || svg.clientWidth;
-      const svgH = svg.height.baseVal?.value || svg.clientHeight;
-      if (svgW > 0 && svgH > 0) {
-        setScale(
-          clampScale(
-            Math.min(areaRect.width / svgW, areaRect.height / svgH) * 0.8,
-          ),
-        );
-      } else {
-        setScale(1);
-      }
-    });
-  }, []);
+  const fitToView = useCallback(
+    (isMaximized: boolean) => {
+      setTranslate({ x: 0, y: 0 });
+      requestAnimationFrame(() => {
+        const svg = diagramRef.current?.querySelector("svg");
+        const area = areaRef.current;
+        if (!svg || !area) {
+          setScale(1);
+          return;
+        }
+        const areaRect = area.getBoundingClientRect();
+        const svgW = svg.width.baseVal?.value || svg.clientWidth;
+        const svgH = svg.height.baseVal?.value || svg.clientHeight;
+        if (svgW > 0 && svgH > 0) {
+          const fit = Math.min(areaRect.width / svgW, areaRect.height / svgH);
+          setScale(clampScale(isMaximized ? fit : fit * 0.8));
+        } else {
+          setScale(1);
+        }
+      });
+    },
+    [clampScale],
+  );
 
   useEffect(() => {
-    if (open) fitToView();
+    if (open) {
+      fitToView(false);
+    } else {
+      setMaximized(false);
+    }
   }, [open, fitToView]);
 
   const reset = useCallback(() => {
-    fitToView();
-  }, [fitToView]);
+    fitToView(maximized);
+  }, [fitToView, maximized]);
 
   const zoomIn = () => setScale((s) => clampScale(s + ZOOM_STEP));
   const zoomOut = () => setScale((s) => clampScale(s - ZOOM_STEP));
@@ -105,7 +120,11 @@ export function MermaidModal({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
         <Dialog.Content
-          className="fixed top-1/2 left-1/2 z-50 flex h-[70dvh] w-[70dvw] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl border border-gray-200 bg-white shadow-xl outline-none"
+          className={`fixed top-1/2 left-1/2 z-50 flex -translate-x-1/2 -translate-y-1/2 flex-col bg-white shadow-xl outline-none transition-all ${
+            maximized
+              ? "h-dvh w-dvw"
+              : "h-[70dvh] w-[70dvw] rounded-xl border border-gray-200"
+          }`}
           aria-describedby={undefined}
         >
           {/* Header */}
@@ -137,6 +156,14 @@ export function MermaidModal({
                 title="Reset"
               >
                 <RotateCcw size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setMaximized((v) => !v)}
+                className={controlBtnClass}
+                title={maximized ? "Restore" : "Maximize"}
+              >
+                {maximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               </button>
               <Dialog.Close asChild>
                 <button type="button" className={controlBtnClass} title="Close">
