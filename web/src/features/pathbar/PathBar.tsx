@@ -1,3 +1,4 @@
+import { Github } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
@@ -21,6 +22,17 @@ export function PathBar({ children }: PathBarProps) {
       <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800">
         {name}
       </span>
+      {import.meta.env.VITE_GITHUB_URL && (
+        <a
+          href={import.meta.env.VITE_GITHUB_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 rounded p-1 text-gray-500 hover:bg-gray-200"
+          aria-label="GitHub"
+        >
+          <Github className="size-4" />
+        </a>
+      )}
     </div>
   );
 }
