@@ -1,6 +1,6 @@
 import { Maximize2 } from "lucide-react";
 import mermaid from "mermaid";
-import { useEffect, useId, useRef, useState } from "react";
+import { memo, useEffect, useId, useRef, useState } from "react";
 import { MermaidModal } from "./MermaidModal";
 
 mermaid.initialize({
@@ -12,7 +12,7 @@ interface MermaidProps {
   chart: string;
 }
 
-export function Mermaid({ chart }: MermaidProps) {
+export const Mermaid = memo(function Mermaid({ chart }: MermaidProps) {
   const id = useId().replace(/:/g, "m");
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -70,4 +70,4 @@ export function Mermaid({ chart }: MermaidProps) {
       />
     </>
   );
-}
+});

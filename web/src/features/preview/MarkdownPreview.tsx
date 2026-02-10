@@ -1,4 +1,4 @@
-import { Check, ClipboardCopy, List } from "lucide-react";
+import { List } from "lucide-react";
 import {
   type ComponentPropsWithoutRef,
   useLayoutEffect,
@@ -11,6 +11,7 @@ import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import remarkFrontmatter from "remark-frontmatter";
 import { remarkAlert } from "remark-github-blockquote-alert";
+import { CopyMarkdownButton } from "./CopyMarkdownButton";
 import "remark-github-blockquote-alert/alert.css";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -35,17 +36,9 @@ export function MarkdownPreview({
 }: MarkdownPreviewProps) {
   const { content, error, loading } = useFileContent(filePath);
   const [tocVisible, setTocVisible] = useState(true);
-  const [copied, setCopied] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [headings, setHeadings] = useState<TocEntry[]>([]);
-
-  const handleCopyMarkdown = async () => {
-    if (content === null) return;
-    await navigator.clipboard.writeText(content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const parsed = useMemo(() => {
     if (content === null) return null;
@@ -114,18 +107,7 @@ export function MarkdownPreview({
         <div ref={scrollRef} className="h-full overflow-y-auto p-6">
           <div className="mb-4 flex items-center gap-1.5">
             <p className="text-sm text-gray-500">{filePath}</p>
-            <button
-              type="button"
-              onClick={handleCopyMarkdown}
-              className="rounded p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 cursor-pointer"
-              title="Copy as Markdown"
-            >
-              {copied ? (
-                <Check className="size-3.5" />
-              ) : (
-                <ClipboardCopy className="size-3.5" />
-              )}
-            </button>
+            <CopyMarkdownButton content={content} />
           </div>
           <div ref={contentRef} className="prose w-full max-w-4xl mx-auto">
             <FrontmatterTable entries={parsed.entries} />
