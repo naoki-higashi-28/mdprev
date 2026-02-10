@@ -4,7 +4,7 @@
 
 A local Markdown preview tool. Browse and preview Markdown files in your browser — no internet required.
 
-<video src="https://github.com/user-attachments/assets/2e9fa2a7-f5e9-444c-a2c6-d95fc24bb8e2" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/73a321b1-048a-4367-9489-d0d46e371477" controls width="100%"></video>
 
 ## Features
 
