@@ -37,7 +37,6 @@ Requirements: Go 1.24+, Node.js 22+, pnpm 10+ (or install all with `mise install
 
 ```bash
 cd web && pnpm install && pnpm build && cd ..
-cp -r web/dist cmd/mdprev/dist
 go build -o mdprev ./cmd/mdprev
 ```
 
