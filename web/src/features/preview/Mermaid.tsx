@@ -1,5 +1,7 @@
+import { Maximize2 } from "lucide-react";
 import mermaid from "mermaid";
 import { useEffect, useId, useRef, useState } from "react";
+import { MermaidModal } from "./MermaidModal";
 
 mermaid.initialize({
   startOnLoad: false,
@@ -14,6 +16,8 @@ export function Mermaid({ chart }: MermaidProps) {
   const id = useId().replace(/:/g, "m");
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [svgHtml, setSvgHtml] = useState<string>("");
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -23,6 +27,7 @@ export function Mermaid({ chart }: MermaidProps) {
         const { svg } = await mermaid.render(`mermaid-${id}`, chart);
         if (!cancelled && containerRef.current) {
           containerRef.current.innerHTML = svg;
+          setSvgHtml(svg);
           setError(null);
         }
       } catch (e) {
@@ -47,6 +52,21 @@ export function Mermaid({ chart }: MermaidProps) {
   }
 
   return (
-    <div ref={containerRef} className="not-prose my-4 flex justify-center" />
+    <>
+      <div
+        className="not-prose group relative my-4 flex cursor-pointer justify-center"
+        onClick={() => setModalOpen(true)}
+      >
+        <div ref={containerRef} />
+        <div className="absolute top-2 right-2 rounded-lg bg-white/80 p-1.5 text-gray-500 opacity-0 shadow transition-opacity group-hover:opacity-100">
+          <Maximize2 size={16} />
+        </div>
+      </div>
+      <MermaidModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        svgHtml={svgHtml}
+      />
+    </>
   );
 }

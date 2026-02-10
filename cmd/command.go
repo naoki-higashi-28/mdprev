@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"context"
@@ -46,7 +46,7 @@ func openBrowser(url string) {
 	}
 }
 
-func main() {
+func Execute() {
 	host := flag.String("host", "127.0.0.1", "bind host")
 	port := flag.String("port", defaultPort, "listen port (0 for random)")
 	open := flag.Bool("open", true, "open browser automatically")

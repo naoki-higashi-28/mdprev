@@ -64,7 +64,7 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
       )}
       <div
         ref={containerRef}
-        className={`[&_pre]:rounded-lg [&_pre]:p-4 [&_pre]:pt-8 [&_pre]:text-sm [&_pre]:overflow-x-auto ${highlighted ? "" : "hidden"}`}
+        className={`[&_pre]:rounded-lg [&_pre]:bg-gray-50! [&_pre]:p-4 [&_pre]:pt-8 [&_pre]:text-sm [&_pre]:overflow-x-auto ${highlighted ? "" : "hidden"}`}
       />
     </div>
   );

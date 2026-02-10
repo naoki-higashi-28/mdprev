@@ -7,7 +7,10 @@ mdprev — A local Markdown preview tool. Go backend + React frontend.
 ## Repository Structure
 
 ```
-cmd/mdprev/           # Go entrypoint
+main.go               # Go entrypoint
+cmd/                  # Command layer (Execute, embed dist)
+  command.go          # Server logic
+  dist/               # Frontend build artifacts (.gitignore target)
 internal/
   domain/             # Domain layer (entities, value objects)
   usecase/            # Use case layer
@@ -16,7 +19,6 @@ internal/
     middleware/       # Middleware (security, etc.)
   infrastructure/     # Infrastructure layer (filesystem operations)
 web/                  # React frontend (Vite + pnpm)
-web/dist/             # Build artifacts (.gitignore target)
 docs/                 # Specifications
 ```
 
@@ -121,17 +123,17 @@ cd web && pnpm install             # Install frontend dependencies
 
 # --- Frontend ---
 cd web && pnpm dev                 # Start Vite dev server (localhost:3000, API proxied to Go)
-cd web && pnpm build               # Build to web/dist/
+cd web && pnpm build               # Build to cmd/dist/
 cd web && pnpm biome check --write . # lint + format
 
 # --- Backend ---
-go run ./cmd/mdprev                # Start server (random port, requires web/dist built)
+go run .                           # Start server (random port, requires cmd/dist built)
 go test ./...                      # Run tests
 gofmt -w .                         # Format
 go vet ./...                       # Static analysis
 
 # --- Build ---
-cd web && pnpm install && pnpm build && cd .. && go build -o mdprev ./cmd/mdprev
+cd web && pnpm install && pnpm build && cd .. && go build -o mdprev .
 ```
 
 ## Coding Conventions
