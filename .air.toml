@@ -3,7 +3,7 @@ root = "."
 [build]
 cmd = "go build -o ./tmp/mdprev ./cmd/mdprev"
 bin = "./tmp/mdprev"
-args_bin = ["--port", "8080"]
+args_bin = ["--port", "8080", "--open=false", "--auto-close=false"]
 include_ext = ["go"]
 exclude_dir = ["tmp", "web", "node_modules"]
 

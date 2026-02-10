@@ -15,7 +15,7 @@ import (
 )
 
 // NewServeMux creates a fully configured http.ServeMux with all routes and SPA fallback.
-func NewServeMux(root string, staticFS fs.FS) (*http.ServeMux, *infrastructure.FileWatcher, error) {
+func NewServeMux(root string, staticFS fs.FS, onConnect, onDisconnect func()) (*http.ServeMux, *infrastructure.FileWatcher, error) {
 	validator, err := middleware.NewPathValidator(root)
 	if err != nil {
 		return nil, nil, fmt.Errorf("initializing path validator: %w", err)
@@ -33,7 +33,7 @@ func NewServeMux(root string, staticFS fs.FS) (*http.ServeMux, *infrastructure.F
 	}
 
 	mux := http.NewServeMux()
-	handler.SetupRoutes(mux, treeUseCase, fileUseCase, searchUseCase, watcher, validator.Root())
+	handler.SetupRoutes(mux, treeUseCase, fileUseCase, searchUseCase, watcher, validator.Root(), onConnect, onDisconnect)
 	setupSPA(mux, staticFS)
 
 	return mux, watcher, nil

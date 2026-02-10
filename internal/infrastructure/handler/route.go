@@ -12,11 +12,11 @@ import (
 )
 
 // SetupRoutes registers all API routes on the given mux.
-func SetupRoutes(mux *http.ServeMux, treeUC *treeuc.UseCase, fileUC *fileuc.UseCase, searchUC *searchuc.UseCase, watchRepo domain.WatchRepository, rootPath string) {
+func SetupRoutes(mux *http.ServeMux, treeUC *treeuc.UseCase, fileUC *fileuc.UseCase, searchUC *searchuc.UseCase, watchRepo domain.WatchRepository, rootPath string, onConnect, onDisconnect func()) {
 	treeHandler := NewTreeHandler(treeUC)
 	fileHandler := NewFileHandler(fileUC)
 	searchHandler := NewSearchHandler(searchUC)
-	watchHandler := NewWatchHandler(watchRepo)
+	watchHandler := NewWatchHandler(watchRepo, onConnect, onDisconnect)
 
 	rootName := filepath.Base(rootPath)
 
