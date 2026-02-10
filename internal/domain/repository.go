@@ -12,9 +12,19 @@ type FileRepository interface {
 	ServeRaw(path string) (string, error)
 }
 
+// ChangeType represents the kind of file system change.
+type ChangeType string
+
+const (
+	ChangeWrite  ChangeType = "write"
+	ChangeCreate ChangeType = "create"
+	ChangeRemove ChangeType = "remove"
+)
+
 // FileChangeEvent represents a file change notification.
 type FileChangeEvent struct {
-	Path string // relative path from root (slash-delimited)
+	Path string     // relative path from root (slash-delimited)
+	Type ChangeType // kind of change
 }
 
 // WatchRepository provides file change watching operations.

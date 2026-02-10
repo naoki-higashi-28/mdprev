@@ -5,6 +5,10 @@ import { defineConfig } from "vite";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    outDir: "../cmd/mdprev/dist",
+    emptyOutDir: true,
+  },
   server: {
     port: 3000,
     proxy: {

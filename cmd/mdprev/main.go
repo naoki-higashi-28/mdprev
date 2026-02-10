@@ -9,7 +9,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 
 	"github.com/naoki-higashi-28/mdprev/internal/dependency"
 )
@@ -19,9 +21,32 @@ var distFS embed.FS
 
 var defaultPort = "0"
 
+func openBrowser(url string) {
+	var cmd string
+	var args []string
+
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = "open"
+	case "linux":
+		cmd = "xdg-open"
+	case "windows":
+		cmd = "rundll32"
+		args = []string{"url.dll,FileProtocolHandler"}
+	default:
+		return
+	}
+
+	args = append(args, url)
+	if err := exec.Command(cmd, args...).Start(); err != nil {
+		log.Printf("Failed to open browser: %v", err)
+	}
+}
+
 func main() {
 	host := flag.String("host", "127.0.0.1", "bind host")
 	port := flag.String("port", defaultPort, "listen port (0 for random)")
+	open := flag.Bool("open", true, "open browser automatically")
 	flag.Parse()
 
 	// Determine root directory
@@ -58,7 +83,13 @@ func main() {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	fmt.Printf("mdprev serving %s on http://%s\n", absRoot, ln.Addr().String())
+	url := fmt.Sprintf("http://%s", ln.Addr().String())
+	fmt.Printf("mdprev serving %s on %s\n", absRoot, url)
+
+	if *open {
+		openBrowser(url)
+	}
+
 	if err := http.Serve(ln, mux); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
