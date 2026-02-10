@@ -16,12 +16,14 @@ type sseMessage struct {
 
 // WatchHandler handles SSE connections for file change notifications.
 type WatchHandler struct {
-	repo domain.WatchRepository
+	repo         domain.WatchRepository
+	onConnect    func()
+	onDisconnect func()
 }
 
 // NewWatchHandler creates a new WatchHandler.
-func NewWatchHandler(repo domain.WatchRepository) *WatchHandler {
-	return &WatchHandler{repo: repo}
+func NewWatchHandler(repo domain.WatchRepository, onConnect, onDisconnect func()) *WatchHandler {
+	return &WatchHandler{repo: repo, onConnect: onConnect, onDisconnect: onDisconnect}
 }
 
 // HandleWatch streams file change events via SSE.
@@ -36,6 +38,13 @@ func (h *WatchHandler) HandleWatch(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	flusher.Flush()
+
+	if h.onConnect != nil {
+		h.onConnect()
+	}
+	if h.onDisconnect != nil {
+		defer h.onDisconnect()
+	}
 
 	events, cancel := h.repo.Subscribe()
 	defer cancel()

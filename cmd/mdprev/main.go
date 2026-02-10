@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"flag"
 	"fmt"
@@ -12,8 +13,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/naoki-higashi-28/mdprev/internal/dependency"
+	"github.com/naoki-higashi-28/mdprev/internal/infrastructure"
 )
 
 //go:embed all:dist
@@ -47,6 +50,7 @@ func main() {
 	host := flag.String("host", "127.0.0.1", "bind host")
 	port := flag.String("port", defaultPort, "listen port (0 for random)")
 	open := flag.Bool("open", true, "open browser automatically")
+	autoClose := flag.Bool("auto-close", true, "shutdown when all connections close")
 	flag.Parse()
 
 	// Determine root directory
@@ -70,7 +74,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create sub filesystem: %v", err)
 	}
-	mux, watcher, err := dependency.NewServeMux(absRoot, sub)
+
+	var onConnect, onDisconnect func()
+	var tracker *infrastructure.ConnectionTracker
+	if *autoClose {
+		tracker = infrastructure.NewConnectionTracker(5 * time.Second)
+		onConnect = tracker.Add
+		onDisconnect = tracker.Remove
+	}
+
+	mux, watcher, err := dependency.NewServeMux(absRoot, sub, onConnect, onDisconnect)
 	if err != nil {
 		log.Fatalf("Failed to initialize: %v", err)
 	}
@@ -90,7 +103,19 @@ func main() {
 		openBrowser(url)
 	}
 
-	if err := http.Serve(ln, mux); err != nil {
+	srv := &http.Server{Handler: mux}
+
+	if tracker != nil {
+		go func() {
+			<-tracker.Done()
+			fmt.Println("\nNo active connections. Shutting down...")
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			srv.Shutdown(ctx)
+		}()
+	}
+
+	if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("Server failed: %v", err)
 	}
 }
