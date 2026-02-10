@@ -1,5 +1,7 @@
 # mdprev
 
+**Write in Neovim. Read in mdprev.** Simple.
+
 A local Markdown preview tool. Browse and preview Markdown files in your browser — no internet required.
 
 <video src="https://github.com/user-attachments/assets/2e9fa2a7-f5e9-444c-a2c6-d95fc24bb8e2" controls width="100%"></video>
@@ -8,6 +10,8 @@ A local Markdown preview tool. Browse and preview Markdown files in your browser
 
 - **Directory tree** — Navigate your folder structure with an expandable sidebar
 - **Markdown preview** — Full GitHub Flavored Markdown support (tables, task lists, strikethrough, etc.)
+- **Mermaid diagrams** — Render flowcharts, sequence diagrams, and more from `mermaid` code blocks
+- **Syntax highlighting** — Language-aware code highlighting powered by Shiki, with one-click copy
 - **Math rendering** — Inline `$...$` and block `$$...$$` equations via KaTeX
 - **Table of contents** — Auto-generated from headings for quick navigation
 - **File search** — Find Markdown files by name
