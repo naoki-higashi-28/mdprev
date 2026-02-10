@@ -1,9 +1,9 @@
 root = "."
 
 [build]
-cmd = "go build -o ./tmp/mdprev ./cmd/mdprev"
+cmd = "go build -o ./tmp/mdprev ."
 bin = "./tmp/mdprev"
-args_bin = ["--port", "8080", "--open=false", "--auto-close=false"]
+args_bin = ["--port", "8080", "--open=false", "--auto-close=false", "./example"]
 include_ext = ["go"]
 exclude_dir = ["tmp", "web", "node_modules"]
 

@@ -41,7 +41,19 @@ export function TableOfContents({
               onClick={(e) => {
                 e.preventDefault();
                 const el = document.getElementById(heading.id);
-                el?.scrollIntoView({ behavior: "smooth" });
+                if (el && scrollRef.current) {
+                  const containerRect =
+                    scrollRef.current.getBoundingClientRect();
+                  const elementRect = el.getBoundingClientRect();
+                  const offsetTop =
+                    elementRect.top -
+                    containerRect.top +
+                    scrollRef.current.scrollTop;
+                  scrollRef.current.scrollTo({
+                    top: offsetTop,
+                    behavior: "smooth",
+                  });
+                }
               }}
               className="block py-0.5 text-gray-600 hover:text-gray-900 truncate"
             >

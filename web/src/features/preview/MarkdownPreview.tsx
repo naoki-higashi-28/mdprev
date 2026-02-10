@@ -10,6 +10,8 @@ import Markdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import remarkFrontmatter from "remark-frontmatter";
+import { remarkAlert } from "remark-github-blockquote-alert";
+import "remark-github-blockquote-alert/alert.css";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { parse as parseYaml } from "yaml";
@@ -128,7 +130,12 @@ export function MarkdownPreview({
           <div ref={contentRef} className="prose w-full max-w-4xl mx-auto">
             <FrontmatterTable entries={parsed.entries} />
             <Markdown
-              remarkPlugins={[remarkFrontmatter, remarkGfm, remarkMath]}
+              remarkPlugins={[
+                remarkFrontmatter,
+                remarkGfm,
+                remarkMath,
+                remarkAlert,
+              ]}
               rehypePlugins={[rehypeRaw, rehypeKatex, rehypeHeadingIds]}
               components={{
                 pre: ({ children }: ComponentPropsWithoutRef<"pre">) => {
@@ -204,12 +211,40 @@ export function MarkdownPreview({
                     );
                   }
 
+                  if (href?.startsWith("#")) {
+                    return (
+                      <a
+                        href={href}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const targetId = href.slice(1);
+                          const el = document.getElementById(targetId);
+                          if (el && scrollRef.current) {
+                            const containerRect =
+                              scrollRef.current.getBoundingClientRect();
+                            const elementRect = el.getBoundingClientRect();
+                            const offsetTop =
+                              elementRect.top -
+                              containerRect.top +
+                              scrollRef.current.scrollTop;
+                            scrollRef.current.scrollTo({
+                              top: offsetTop,
+                              behavior: "smooth",
+                            });
+                          }
+                        }}
+                        {...props}
+                      >
+                        {children}
+                      </a>
+                    );
+                  }
+
                   const isExternal =
                     href?.startsWith("http://") || href?.startsWith("https://");
                   return (
                     <a
                       href={href}
-                      className=""
                       {...(isExternal
                         ? { target: "_blank", rel: "noopener noreferrer" }
                         : {})}

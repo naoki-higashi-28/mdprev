@@ -34,7 +34,7 @@ export function HomePage() {
             />
           </div>
         )}
-        <div className="flex-1 overflow-y-auto bg-white">
+        <div className="flex-1 overflow-hidden bg-white">
           <MarkdownPreview
             filePath={selectedPath}
             onNavigate={setSelectedPath}

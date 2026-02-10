@@ -6,7 +6,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
-    outDir: "../cmd/mdprev/dist",
+    outDir: "../cmd/dist",
     emptyOutDir: true,
   },
   server: {

@@ -9,14 +9,17 @@ A local Markdown preview tool. Browse and preview Markdown files in your browser
 ## Features
 
 - **Directory tree** — Navigate your folder structure with an expandable sidebar
-- **Markdown preview** — Full GitHub Flavored Markdown support (tables, task lists, strikethrough, etc.)
-- **Mermaid diagrams** — Render flowcharts, sequence diagrams, and more from `mermaid` code blocks
+- **Markdown preview** — Full GitHub Flavored Markdown support (tables, task lists, strikethrough, alerts, etc.)
+- **Mermaid diagrams** — Render flowcharts, sequence diagrams, and more from `mermaid` code blocks, with click-to-zoom modal
 - **Syntax highlighting** — Language-aware code highlighting powered by Shiki, with one-click copy
 - **Math rendering** — Inline `$...$` and block `$$...$$` equations via KaTeX
 - **Table of contents** — Auto-generated from headings for quick navigation
+- **Copy as Markdown** — Copy the raw Markdown source to your clipboard with one click
+- **Internal link navigation** — Click `.md` links to navigate within the app
 - **File search** — Find Markdown files by name
 - **Live reload** — Preview updates automatically when files change
 - **Frontmatter** — YAML frontmatter parsing and display
+- **Auto-shutdown** — Server stops automatically when all browser tabs are closed
 - **Offline** — Everything runs locally with no external dependencies
 
 ## Install
@@ -24,7 +27,7 @@ A local Markdown preview tool. Browse and preview Markdown files in your browser
 ### Go
 
 ```bash
-go install github.com/naoki-higashi-28/mdprev/cmd/mdprev@latest
+go install github.com/naoki-higashi-28/mdprev@latest
 ```
 
 ### Download binary
@@ -37,7 +40,7 @@ Requirements: Go 1.24+, Node.js 22+, pnpm 10+ (or install all with `mise install
 
 ```bash
 cd web && pnpm install && pnpm build && cd ..
-go build -o mdprev ./cmd/mdprev
+go build -o mdprev .
 ```
 
 ## Usage
