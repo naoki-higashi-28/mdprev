@@ -55,6 +55,12 @@ mdprev --host 0.0.0.0 --port 8080 ~/docs
 
 Open the printed URL in your browser.
 
+### Try with examples
+
+```bash
+mdprev ./example
+```
+
 ## License
 
 MIT
