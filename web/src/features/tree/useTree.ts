@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import useSWR, { useSWRConfig } from "swr";
 import type { TreeResponse } from "../../shared/types";
 import { fetchTree } from "./api";
 
@@ -9,36 +10,42 @@ interface UseTreeResult {
 }
 
 export function useTree(): UseTreeResult {
-  const [tree, setTree] = useState<TreeResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { mutate } = useSWRConfig();
+
+  const { data, error, isLoading } = useSWR(["tree", ""], ([, p]) =>
+    fetchTree(p),
+  );
 
   useEffect(() => {
-    let cancelled = false;
+    const eventSource = new EventSource("/api/watch");
 
-    async function load() {
+    eventSource.onmessage = (event) => {
       try {
-        const data = await fetchTree("");
-        if (!cancelled) {
-          setTree(data);
-          setError(null);
+        const msg = JSON.parse(event.data);
+        if (msg.type === "tree_change") {
+          const dir: string = msg.path;
+          mutate(["tree", dir]);
+          if (dir !== "") {
+            mutate(["tree", ""]);
+          }
         }
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Failed to fetch tree");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+      } catch {
+        // Ignore non-JSON messages
       }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
     };
-  }, []);
 
-  return { tree, error, loading };
+    return () => {
+      eventSource.close();
+    };
+  }, [mutate]);
+
+  return {
+    tree: data ?? null,
+    error: error
+      ? error instanceof Error
+        ? error.message
+        : "Failed to fetch tree"
+      : null,
+    loading: isLoading,
+  };
 }

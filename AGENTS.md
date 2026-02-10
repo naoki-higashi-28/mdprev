@@ -131,7 +131,7 @@ gofmt -w .                         # Format
 go vet ./...                       # Static analysis
 
 # --- Build ---
-cd web && pnpm build && cd .. && cp -r web/dist cmd/mdprev/dist && go build -o mdprev ./cmd/mdprev
+cd web && pnpm build && cd .. && go build -o mdprev ./cmd/mdprev
 ```
 
 ## Coding Conventions

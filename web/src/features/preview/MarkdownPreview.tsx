@@ -1,8 +1,9 @@
 import { List } from "lucide-react";
 import {
   type ComponentPropsWithoutRef,
-  type ReactNode,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import Markdown from "react-markdown";
@@ -14,7 +15,8 @@ import remarkMath from "remark-math";
 import { parse as parseYaml } from "yaml";
 import { resolveRelativePath } from "../../shared/lib/resolvePath";
 import { FrontmatterTable } from "./FrontmatterTable";
-import { slugify } from "./slugify";
+import { rehypeHeadingIds } from "./slugify";
+import type { TocEntry } from "./TableOfContents";
 import { TableOfContents } from "./TableOfContents";
 import { useFileContent } from "./useFileContent";
 
@@ -23,49 +25,15 @@ interface MarkdownPreviewProps {
   onNavigate: (path: string) => void;
 }
 
-function extractText(node: ReactNode): string {
-  if (typeof node === "string") return node;
-  if (typeof node === "number") return String(node);
-  if (!node) return "";
-  if (Array.isArray(node)) return node.map(extractText).join("");
-  if (typeof node === "object" && "props" in node) {
-    const props = node.props as { children?: ReactNode };
-    return extractText(props.children);
-  }
-  return "";
-}
-
-type HeadingTag = "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
-
-function createHeadingRenderer(Tag: HeadingTag) {
-  return function HeadingComponent({
-    children,
-    ...props
-  }: ComponentPropsWithoutRef<typeof Tag>) {
-    const id = slugify(extractText(children));
-    return (
-      <Tag id={id} {...props}>
-        {children}
-      </Tag>
-    );
-  };
-}
-
-const headingComponents = {
-  h1: createHeadingRenderer("h1"),
-  h2: createHeadingRenderer("h2"),
-  h3: createHeadingRenderer("h3"),
-  h4: createHeadingRenderer("h4"),
-  h5: createHeadingRenderer("h5"),
-  h6: createHeadingRenderer("h6"),
-};
-
 export function MarkdownPreview({
   filePath,
   onNavigate,
 }: MarkdownPreviewProps) {
   const { content, error, loading } = useFileContent(filePath);
   const [tocVisible, setTocVisible] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [headings, setHeadings] = useState<TocEntry[]>([]);
 
   const parsed = useMemo(() => {
     if (content === null) return null;
@@ -75,6 +43,21 @@ export function MarkdownPreview({
     const entries =
       data && typeof data === "object" ? Object.entries(data) : [];
     return { entries, body: match[2] };
+  }, [content]);
+
+  useLayoutEffect(() => {
+    if (!content || !contentRef.current) return;
+    const els = contentRef.current.querySelectorAll("h1, h2, h3, h4, h5, h6");
+    const entries: TocEntry[] = [];
+    for (const el of els) {
+      if (!el.id) continue;
+      entries.push({
+        level: Number.parseInt(el.tagName[1], 10),
+        text: el.textContent ?? "",
+        id: el.id,
+      });
+    }
+    setHeadings(entries);
   }, [content]);
 
   if (!filePath) {
@@ -116,15 +99,14 @@ export function MarkdownPreview({
         >
           <List className="size-5" />
         </button>
-        <div className="h-full overflow-y-auto p-6">
+        <div ref={scrollRef} className="h-full overflow-y-auto p-6">
           <p className="mb-4 text-sm text-gray-500">{filePath}</p>
-          <div className="prose w-full max-w-4xl mx-auto">
+          <div ref={contentRef} className="prose w-full max-w-4xl mx-auto">
             <FrontmatterTable entries={parsed.entries} />
             <Markdown
               remarkPlugins={[remarkFrontmatter, remarkGfm, remarkMath]}
-              rehypePlugins={[rehypeRaw, rehypeKatex]}
+              rehypePlugins={[rehypeRaw, rehypeKatex, rehypeHeadingIds]}
               components={{
-                ...headingComponents,
                 img: ({
                   src,
                   alt,
@@ -196,7 +178,7 @@ export function MarkdownPreview({
       </div>
       {tocVisible && (
         <aside className="w-64 shrink-0 border-l border-gray-200 overflow-y-auto p-4">
-          <TableOfContents markdown={parsed.body} />
+          <TableOfContents headings={headings} filePath={filePath} scrollRef={scrollRef} />
         </aside>
       )}
     </div>

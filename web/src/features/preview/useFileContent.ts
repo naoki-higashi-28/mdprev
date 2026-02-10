@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
+import useSWR, { useSWRConfig } from "swr";
 import { fetchFile } from "./api";
-import { useFileWatcher } from "./useFileWatcher";
 
 interface UseFileContentResult {
   content: string | null;
@@ -9,47 +9,44 @@ interface UseFileContentResult {
 }
 
 export function useFileContent(path: string): UseFileContentResult {
-  const [content, setContent] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const revision = useFileWatcher(path);
+  const pathRef = useRef(path);
+  const { mutate } = useSWRConfig();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: revision triggers re-fetch on file change
+  const { data, error, isLoading } = useSWR(
+    path ? ["file", path] : null,
+    ([, p]) => fetchFile(p),
+  );
+
   useEffect(() => {
-    if (!path) {
-      setContent(null);
-      setError(null);
-      setLoading(false);
-      return;
-    }
+    pathRef.current = path;
+  }, [path]);
 
-    let cancelled = false;
-    setLoading(true);
+  useEffect(() => {
+    const eventSource = new EventSource("/api/watch");
 
-    async function load() {
+    eventSource.onmessage = (event) => {
       try {
-        const text = await fetchFile(path);
-        if (!cancelled) {
-          setContent(text);
-          setError(null);
+        const msg = JSON.parse(event.data);
+        if (msg.type === "file_change" && msg.path === pathRef.current) {
+          mutate(["file", pathRef.current]);
         }
-      } catch (e) {
-        if (!cancelled) {
-          setContent(null);
-          setError(e instanceof Error ? e.message : "Failed to fetch file");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+      } catch {
+        // Ignore non-JSON messages
       }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
     };
-  }, [path, revision]);
 
-  return { content, error, loading };
+    return () => {
+      eventSource.close();
+    };
+  }, [mutate]);
+
+  return {
+    content: data ?? null,
+    error: error
+      ? error instanceof Error
+        ? error.message
+        : "Failed to fetch file"
+      : null,
+    loading: isLoading,
+  };
 }

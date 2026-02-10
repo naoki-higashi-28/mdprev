@@ -36,9 +36,6 @@ jobs:
         run: pnpm build
         working-directory: web
 
-      - name: Copy dist to embed directory
-        run: cp -r web/dist cmd/mdprev/dist
-
       # go install 対応: dist をコミットに含めてタグを更新
       - name: Update tag with built assets
         run: |

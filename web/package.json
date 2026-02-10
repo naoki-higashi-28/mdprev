@@ -22,6 +22,7 @@
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
+    "swr": "^2.4.0",
     "tailwindcss": "^4.1.18",
     "yaml": "^2.8.2"
   },

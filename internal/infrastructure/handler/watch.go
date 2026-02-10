@@ -1,11 +1,18 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"path"
 
 	"github.com/naoki-higashi-28/mdprev/internal/domain"
 )
+
+type sseMessage struct {
+	Type string `json:"type"`
+	Path string `json:"path"`
+}
 
 // WatchHandler handles SSE connections for file change notifications.
 type WatchHandler struct {
@@ -38,7 +45,17 @@ func (h *WatchHandler) HandleWatch(w http.ResponseWriter, r *http.Request) {
 		case <-r.Context().Done():
 			return
 		case evt := <-events:
-			fmt.Fprintf(w, "data: %s\n\n", evt.Path)
+			if evt.Type == domain.ChangeCreate || evt.Type == domain.ChangeRemove {
+				dir := path.Dir(evt.Path)
+				if dir == "." {
+					dir = ""
+				}
+				treeMsg, _ := json.Marshal(sseMessage{Type: "tree_change", Path: dir})
+				fmt.Fprintf(w, "data: %s\n\n", treeMsg)
+				flusher.Flush()
+			}
+			fileMsg, _ := json.Marshal(sseMessage{Type: "file_change", Path: evt.Path})
+			fmt.Fprintf(w, "data: %s\n\n", fileMsg)
 			flusher.Flush()
 		}
 	}

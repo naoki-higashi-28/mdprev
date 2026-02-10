@@ -1,5 +1,6 @@
 import { ChevronDown, ChevronRight, File, Folder } from "lucide-react";
 import { useState } from "react";
+import useSWR from "swr";
 import type { TreeEntry } from "../../shared/types";
 import { fetchTree } from "./api";
 
@@ -17,30 +18,21 @@ export function TreeNode({
   onSelectFile,
 }: TreeNodeProps) {
   const [expanded, setExpanded] = useState(false);
-  const [children, setChildren] = useState<TreeEntry[]>([]);
-  const [loaded, setLoaded] = useState(false);
+
+  const { data } = useSWR(
+    entry.type === "dir" && expanded ? ["tree", entry.path] : null,
+    ([, p]) => fetchTree(p),
+  );
+  const children = data?.entries ?? [];
 
   const paddingLeft = `${depth * 16 + 8}px`;
 
   if (entry.type === "dir") {
-    const handleToggle = async () => {
-      if (!loaded) {
-        try {
-          const data = await fetchTree(entry.path);
-          setChildren(data.entries ?? []);
-          setLoaded(true);
-        } catch {
-          // Silently handle error - directory will appear empty
-        }
-      }
-      setExpanded((prev) => !prev);
-    };
-
     return (
       <div>
         <button
           type="button"
-          onClick={handleToggle}
+          onClick={() => setExpanded((prev) => !prev)}
           className="flex w-full items-center gap-1 py-0.5 text-left text-sm hover:bg-gray-100"
           style={{ paddingLeft }}
         >

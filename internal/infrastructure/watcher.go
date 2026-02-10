@@ -18,6 +18,7 @@ type FileWatcher struct {
 	done        chan struct{}
 	mu          sync.Mutex
 	subscribers map[chan domain.FileChangeEvent]struct{}
+	watchedDirs map[string]struct{}
 }
 
 // NewFileWatcher creates a new FileWatcher that monitors the given root directory.
@@ -32,6 +33,7 @@ func NewFileWatcher(root string) (*FileWatcher, error) {
 		watcher:     w,
 		done:        make(chan struct{}),
 		subscribers: make(map[chan domain.FileChangeEvent]struct{}),
+		watchedDirs: make(map[string]struct{}),
 	}
 
 	if err := fw.addDirs(root); err != nil {
@@ -53,6 +55,7 @@ func (fw *FileWatcher) addDirs(root string) error {
 			if path != root && strings.HasPrefix(d.Name(), ".") {
 				return filepath.SkipDir
 			}
+			fw.watchedDirs[path] = struct{}{}
 			return fw.watcher.Add(path)
 		}
 		return nil
@@ -60,36 +63,47 @@ func (fw *FileWatcher) addDirs(root string) error {
 }
 
 func (fw *FileWatcher) loop() {
-	debounce := make(map[string]struct{})
-	var timer *time.Timer
+	debounce := make(map[string]domain.ChangeType)
+	timer := time.NewTimer(0)
+	if !timer.Stop() {
+		<-timer.C
+	}
 
-	flush := func() {
-		fw.mu.Lock()
-		subs := make([]chan domain.FileChangeEvent, 0, len(fw.subscribers))
-		for ch := range fw.subscribers {
-			subs = append(subs, ch)
-		}
-		fw.mu.Unlock()
-
-		for path := range debounce {
-			evt := domain.FileChangeEvent{Path: path}
-			for _, ch := range subs {
-				select {
-				case ch <- evt:
-				default:
-				}
+	resetTimer := func() {
+		if !timer.Stop() {
+			select {
+			case <-timer.C:
+			default:
 			}
 		}
-		debounce = make(map[string]struct{})
+		timer.Reset(100 * time.Millisecond)
 	}
 
 	for {
 		select {
 		case <-fw.done:
-			if timer != nil {
-				timer.Stop()
-			}
+			timer.Stop()
 			return
+
+		case <-timer.C:
+			fw.mu.Lock()
+			subs := make([]chan domain.FileChangeEvent, 0, len(fw.subscribers))
+			for ch := range fw.subscribers {
+				subs = append(subs, ch)
+			}
+			fw.mu.Unlock()
+
+			for p, ct := range debounce {
+				evt := domain.FileChangeEvent{Path: p, Type: ct}
+				for _, ch := range subs {
+					select {
+					case ch <- evt:
+					default:
+					}
+				}
+			}
+			debounce = make(map[string]domain.ChangeType)
+
 		case event, ok := <-fw.watcher.Events:
 			if !ok {
 				return
@@ -97,7 +111,31 @@ func (fw *FileWatcher) loop() {
 
 			// Add newly created directories to the watch list
 			if event.Has(fsnotify.Create) {
-				fw.tryAddDir(event.Name)
+				if fw.tryAddDir(event.Name) {
+					rel, err := filepath.Rel(fw.root, event.Name)
+					if err == nil {
+						relSlash := filepath.ToSlash(rel)
+						if prev, exists := debounce[relSlash]; !exists || prev == domain.ChangeWrite {
+							debounce[relSlash] = domain.ChangeCreate
+						}
+						resetTimer()
+					}
+				}
+			}
+
+			// Detect directory removal
+			if event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename) {
+				if _, wasDir := fw.watchedDirs[event.Name]; wasDir {
+					delete(fw.watchedDirs, event.Name)
+					rel, err := filepath.Rel(fw.root, event.Name)
+					if err == nil {
+						relSlash := filepath.ToSlash(rel)
+						if prev, exists := debounce[relSlash]; !exists || prev == domain.ChangeWrite {
+							debounce[relSlash] = domain.ChangeRemove
+						}
+						resetTimer()
+					}
+				}
 			}
 
 			if !isMarkdown(event.Name) {
@@ -110,13 +148,25 @@ func (fw *FileWatcher) loop() {
 					continue
 				}
 				relSlash := filepath.ToSlash(rel)
-				debounce[relSlash] = struct{}{}
 
-				if timer != nil {
-					timer.Stop()
+				var ct domain.ChangeType
+				switch {
+				case event.Has(fsnotify.Create):
+					ct = domain.ChangeCreate
+				case event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename):
+					ct = domain.ChangeRemove
+				default:
+					ct = domain.ChangeWrite
 				}
-				timer = time.AfterFunc(100*time.Millisecond, flush)
+
+				// Create/Remove takes priority over Write for the same path
+				if prev, exists := debounce[relSlash]; !exists || prev == domain.ChangeWrite {
+					debounce[relSlash] = ct
+				}
+
+				resetTimer()
 			}
+
 		case _, ok := <-fw.watcher.Errors:
 			if !ok {
 				return
@@ -125,16 +175,21 @@ func (fw *FileWatcher) loop() {
 	}
 }
 
-func (fw *FileWatcher) tryAddDir(path string) {
+func (fw *FileWatcher) tryAddDir(path string) bool {
 	info, err := os.Stat(path)
 	if err != nil || !info.IsDir() {
-		return
+		return false
 	}
 	name := filepath.Base(path)
 	if strings.HasPrefix(name, ".") {
-		return
+		return false
 	}
-	_ = fw.watcher.Add(path)
+	// Recursively add subdirectories (handles cp -r scenarios)
+	if err := fw.addDirs(path); err != nil {
+		_ = fw.watcher.Add(path)
+		fw.watchedDirs[path] = struct{}{}
+	}
+	return true
 }
 
 func isMarkdown(path string) bool {
