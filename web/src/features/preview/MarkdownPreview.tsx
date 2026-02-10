@@ -14,7 +14,9 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { parse as parseYaml } from "yaml";
 import { resolveRelativePath } from "../../shared/lib/resolvePath";
+import { CodeBlock } from "./CodeBlock";
 import { FrontmatterTable } from "./FrontmatterTable";
+import { Mermaid } from "./Mermaid";
 import { rehypeHeadingIds } from "./slugify";
 import type { TocEntry } from "./TableOfContents";
 import { TableOfContents } from "./TableOfContents";
@@ -107,6 +109,32 @@ export function MarkdownPreview({
               remarkPlugins={[remarkFrontmatter, remarkGfm, remarkMath]}
               rehypePlugins={[rehypeRaw, rehypeKatex, rehypeHeadingIds]}
               components={{
+                pre: ({ children }: ComponentPropsWithoutRef<"pre">) => {
+                  if (
+                    children &&
+                    typeof children === "object" &&
+                    "type" in children &&
+                    children.type === "code"
+                  ) {
+                    const codeProps = children.props as {
+                      className?: string;
+                      children?: string;
+                    };
+                    const match = codeProps.className?.match(/language-(\w+)/);
+                    const lang = match?.[1];
+                    const code = String(codeProps.children ?? "").replace(
+                      /\n$/,
+                      "",
+                    );
+
+                    if (lang === "mermaid") {
+                      return <Mermaid chart={code} />;
+                    }
+
+                    return <CodeBlock code={code} language={lang} />;
+                  }
+                  return <pre>{children}</pre>;
+                },
                 img: ({
                   src,
                   alt,
@@ -178,7 +206,11 @@ export function MarkdownPreview({
       </div>
       {tocVisible && (
         <aside className="w-64 shrink-0 border-l border-gray-200 overflow-y-auto p-4">
-          <TableOfContents headings={headings} filePath={filePath} scrollRef={scrollRef} />
+          <TableOfContents
+            headings={headings}
+            filePath={filePath}
+            scrollRef={scrollRef}
+          />
         </aside>
       )}
     </div>

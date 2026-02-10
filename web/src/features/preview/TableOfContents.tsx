@@ -20,17 +20,16 @@ export function TableOfContents({
 
   return (
     <nav className="text-sm">
-      <a
-        href="#top"
-        onClick={(e) => {
-          e.preventDefault();
+      <button
+        type="button"
+        onClick={() => {
           scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
         }}
-        className="block py-0.5 font-semibold text-gray-800 hover:text-gray-600 truncate mb-1"
+        className="block py-0.5 font-semibold text-gray-800 hover:text-gray-600 truncate mb-1 cursor-pointer"
         title={filePath}
       >
         {fileName}
-      </a>
+      </button>
       <ul className="space-y-1">
         {headings.map((heading, index) => (
           <li

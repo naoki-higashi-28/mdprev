@@ -13,6 +13,7 @@
     "@tailwindcss/vite": "^4.1.18",
     "katex": "^0.16.28",
     "lucide-react": "^0.563.0",
+    "mermaid": "^11.12.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",
@@ -22,6 +23,7 @@
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
+    "shiki": "^3.22.0",
     "swr": "^2.4.0",
     "tailwindcss": "^4.1.18",
     "yaml": "^2.8.2"
