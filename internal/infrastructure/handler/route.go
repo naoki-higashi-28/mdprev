@@ -3,30 +3,26 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-	"path/filepath"
-
-	fileuc "github.com/naoki-higashi-28/mdprev/internal/application/usecase/file"
-	searchuc "github.com/naoki-higashi-28/mdprev/internal/application/usecase/search"
-	treeuc "github.com/naoki-higashi-28/mdprev/internal/application/usecase/tree"
-	"github.com/naoki-higashi-28/mdprev/internal/domain"
 )
 
+// Routes groups handlers used for route registration.
+type Routes struct {
+	Tree     *TreeHandler
+	File     *FileHandler
+	Search   *SearchHandler
+	Watch    *WatchHandler
+	RootName string
+}
+
 // SetupRoutes registers all API routes on the given mux.
-func SetupRoutes(mux *http.ServeMux, treeUC *treeuc.UseCase, fileUC *fileuc.UseCase, searchUC *searchuc.UseCase, watchRepo domain.WatchRepository, rootPath string, onConnect, onDisconnect func()) {
-	treeHandler := NewTreeHandler(treeUC)
-	fileHandler := NewFileHandler(fileUC)
-	searchHandler := NewSearchHandler(searchUC)
-	watchHandler := NewWatchHandler(watchRepo, onConnect, onDisconnect)
-
-	rootName := filepath.Base(rootPath)
-
-	mux.HandleFunc("GET /api/tree", treeHandler.HandleGetTree)
-	mux.HandleFunc("GET /api/file", fileHandler.HandleGetFile)
-	mux.HandleFunc("GET /api/search", searchHandler.HandleSearch)
-	mux.HandleFunc("GET /raw/{path...}", fileHandler.HandleGetRaw)
-	mux.HandleFunc("GET /api/watch", watchHandler.HandleWatch)
+func SetupRoutes(mux *http.ServeMux, routes Routes) {
+	mux.HandleFunc("GET /api/tree", routes.Tree.HandleGetTree)
+	mux.HandleFunc("GET /api/file", routes.File.HandleGetFile)
+	mux.HandleFunc("GET /api/search", routes.Search.HandleSearch)
+	mux.HandleFunc("GET /raw/{path...}", routes.File.HandleGetRaw)
+	mux.HandleFunc("GET /api/watch", routes.Watch.HandleWatch)
 	mux.HandleFunc("GET /api/info", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"name": rootName})
+		_ = json.NewEncoder(w).Encode(map[string]string{"name": routes.RootName})
 	})
 }

@@ -1,4 +1,4 @@
-import { Github } from "lucide-react";
+import { SiGithub } from "@icons-pack/react-simple-icons";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
@@ -30,7 +30,7 @@ export function PathBar({ children }: PathBarProps) {
           className="shrink-0 rounded p-1 text-gray-500 hover:bg-gray-200"
           aria-label="GitHub"
         >
-          <Github className="size-4" />
+          <SiGithub className="size-4" />
         </a>
       )}
     </div>

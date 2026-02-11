@@ -2,10 +2,11 @@ package middleware
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/naoki-higashi-28/mdprev/internal/domain"
+	"github.com/naoki-higashi-28/mdprev/internal/domain/model"
 )
 
 // PathValidator validates that paths don't escape the root directory.
@@ -37,21 +38,32 @@ func (v *PathValidator) Validate(relPath string) (string, error) {
 	cleaned := filepath.Clean(relPath)
 	absPath := filepath.Join(v.root, cleaned)
 
-	// Check the cleaned path doesn't escape root
-	if !strings.HasPrefix(absPath, v.root) {
-		return "", fmt.Errorf("path escapes root directory: %w", domain.ErrForbidden)
+	// Ensure joined path stays within root.
+	relFromRoot, err := filepath.Rel(v.root, absPath)
+	if err != nil {
+		return "", fmt.Errorf("computing relative path: %w", err)
+	}
+	if relFromRoot == ".." || strings.HasPrefix(relFromRoot, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("path escapes root directory: %w", model.ErrForbidden)
 	}
 
-	// Resolve symlinks and check again
+	// Resolve symlinks and check again.
 	evalPath, err := filepath.EvalSymlinks(absPath)
 	if err != nil {
-		// If the file doesn't exist, return the cleaned path
-		// The caller will handle the not-found error
-		return absPath, nil
+		// If the path doesn't exist, return the cleaned path.
+		// The caller will handle the not-found error.
+		if os.IsNotExist(err) {
+			return absPath, nil
+		}
+		return "", fmt.Errorf("evaluating symlinks: %w", err)
 	}
 
-	if !strings.HasPrefix(evalPath, v.root) {
-		return "", fmt.Errorf("symlink escapes root directory: %w", domain.ErrForbidden)
+	relFromRoot, err = filepath.Rel(v.root, evalPath)
+	if err != nil {
+		return "", fmt.Errorf("computing relative path after symlink resolution: %w", err)
+	}
+	if relFromRoot == ".." || strings.HasPrefix(relFromRoot, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("symlink escapes root directory: %w", model.ErrForbidden)
 	}
 
 	return evalPath, nil

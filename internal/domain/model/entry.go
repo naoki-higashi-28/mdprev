@@ -1,4 +1,4 @@
-package domain
+package model
 
 // EntryType represents the type of a file system entry.
 type EntryType string
@@ -16,16 +16,4 @@ type Entry struct {
 	Ext   string    `json:"ext,omitempty"`
 	Size  int64     `json:"size,omitempty"`
 	Mtime int64     `json:"mtime,omitempty"`
-}
-
-// TreeResult represents the result of a directory listing.
-type TreeResult struct {
-	Path    string  `json:"path"`
-	Entries []Entry `json:"entries"`
-}
-
-// SearchResult represents the result of a file search.
-type SearchResult struct {
-	Query   string  `json:"query"`
-	Entries []Entry `json:"entries"`
 }

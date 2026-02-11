@@ -8,12 +8,13 @@ import (
 
 // FileHandler handles file API requests.
 type FileHandler struct {
-	uc *fileuc.UseCase
+	getFileUC    *fileuc.GetFileUseCase
+	getRawFileUC *fileuc.GetRawFileUseCase
 }
 
 // NewFileHandler creates a new FileHandler.
-func NewFileHandler(uc *fileuc.UseCase) *FileHandler {
-	return &FileHandler{uc: uc}
+func NewFileHandler(getFileUC *fileuc.GetFileUseCase, getRawFileUC *fileuc.GetRawFileUseCase) *FileHandler {
+	return &FileHandler{getFileUC: getFileUC, getRawFileUC: getRawFileUC}
 }
 
 // HandleGetFile handles GET /api/file requests.
@@ -24,14 +25,14 @@ func (h *FileHandler) HandleGetFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := h.uc.GetFile(path)
+	data, err := h.getFileUC.Execute(path)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.Write(data)
+	_, _ = w.Write(data)
 }
 
 // HandleGetRaw handles GET /raw/{path...} requests.
@@ -42,7 +43,7 @@ func (h *FileHandler) HandleGetRaw(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filePath, err := h.uc.GetRaw(path)
+	filePath, err := h.getRawFileUC.Execute(path)
 	if err != nil {
 		writeError(w, err)
 		return

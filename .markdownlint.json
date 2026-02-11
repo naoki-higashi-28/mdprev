@@ -1,0 +1,22 @@
+{
+  "default": true,
+  "MD003": {
+    "style": "atx"
+  },
+  "MD007": {
+    "indent": 4
+  },
+  "MD010": {
+    "code_blocks": false
+  },
+  "MD013": false,
+  "MD024": {
+    "siblings_only": true
+  },
+  "MD026": {
+    "punctuation": ".,:;"
+  },
+  "MD033": false,
+  "MD041": false,
+  "MD060": false
+}

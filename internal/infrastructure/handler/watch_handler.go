@@ -6,7 +6,8 @@ import (
 	"net/http"
 	"path"
 
-	"github.com/naoki-higashi-28/mdprev/internal/domain"
+	appport "github.com/naoki-higashi-28/mdprev/internal/application/port"
+	watchuc "github.com/naoki-higashi-28/mdprev/internal/application/usecase/watch"
 )
 
 type sseMessage struct {
@@ -16,14 +17,14 @@ type sseMessage struct {
 
 // WatchHandler handles SSE connections for file change notifications.
 type WatchHandler struct {
-	repo         domain.WatchRepository
+	uc           *watchuc.SubscribeFileChangesUseCase
 	onConnect    func()
 	onDisconnect func()
 }
 
 // NewWatchHandler creates a new WatchHandler.
-func NewWatchHandler(repo domain.WatchRepository, onConnect, onDisconnect func()) *WatchHandler {
-	return &WatchHandler{repo: repo, onConnect: onConnect, onDisconnect: onDisconnect}
+func NewWatchHandler(uc *watchuc.SubscribeFileChangesUseCase, onConnect, onDisconnect func()) *WatchHandler {
+	return &WatchHandler{uc: uc, onConnect: onConnect, onDisconnect: onDisconnect}
 }
 
 // HandleWatch streams file change events via SSE.
@@ -46,7 +47,7 @@ func (h *WatchHandler) HandleWatch(w http.ResponseWriter, r *http.Request) {
 		defer h.onDisconnect()
 	}
 
-	events, cancel := h.repo.Subscribe()
+	events, cancel := h.uc.Execute()
 	defer cancel()
 
 	for {
@@ -54,17 +55,17 @@ func (h *WatchHandler) HandleWatch(w http.ResponseWriter, r *http.Request) {
 		case <-r.Context().Done():
 			return
 		case evt := <-events:
-			if evt.Type == domain.ChangeCreate || evt.Type == domain.ChangeRemove {
+			if evt.Type == appport.FileChangeTypeCreate || evt.Type == appport.FileChangeTypeRemove {
 				dir := path.Dir(evt.Path)
 				if dir == "." {
 					dir = ""
 				}
 				treeMsg, _ := json.Marshal(sseMessage{Type: "tree_change", Path: dir})
-				fmt.Fprintf(w, "data: %s\n\n", treeMsg)
+				_, _ = fmt.Fprintf(w, "data: %s\n\n", treeMsg)
 				flusher.Flush()
 			}
 			fileMsg, _ := json.Marshal(sseMessage{Type: "file_change", Path: evt.Path})
-			fmt.Fprintf(w, "data: %s\n\n", fileMsg)
+			_, _ = fmt.Fprintf(w, "data: %s\n\n", fileMsg)
 			flusher.Flush()
 		}
 	}

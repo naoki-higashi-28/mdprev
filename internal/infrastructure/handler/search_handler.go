@@ -9,11 +9,11 @@ import (
 
 // SearchHandler handles search API requests.
 type SearchHandler struct {
-	uc *searchuc.UseCase
+	uc *searchuc.SearchFilesUseCase
 }
 
 // NewSearchHandler creates a new SearchHandler.
-func NewSearchHandler(uc *searchuc.UseCase) *SearchHandler {
+func NewSearchHandler(uc *searchuc.SearchFilesUseCase) *SearchHandler {
 	return &SearchHandler{uc: uc}
 }
 
@@ -21,7 +21,7 @@ func NewSearchHandler(uc *searchuc.UseCase) *SearchHandler {
 func (h *SearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 
-	result, err := h.uc.Search(query)
+	result, err := h.uc.Execute(query)
 	if err != nil {
 		writeError(w, err)
 		return
