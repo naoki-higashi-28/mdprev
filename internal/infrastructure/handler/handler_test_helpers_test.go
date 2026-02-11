@@ -26,7 +26,7 @@ func (m *mockFileRepo) ServeRaw(path string) (string, error) {
 
 type mockTreeRepo struct {
 	listFn   func(path string) ([]model.Entry, error)
-	searchFn func(query string) ([]model.Entry, error)
+	searchFn func(terms []string) ([]model.Entry, error)
 }
 
 func (m *mockTreeRepo) ListEntries(path string) ([]model.Entry, error) {
@@ -36,9 +36,9 @@ func (m *mockTreeRepo) ListEntries(path string) ([]model.Entry, error) {
 	return nil, nil
 }
 
-func (m *mockTreeRepo) SearchEntries(query string) ([]model.Entry, error) {
+func (m *mockTreeRepo) SearchEntries(terms []string) ([]model.Entry, error) {
 	if m.searchFn != nil {
-		return m.searchFn(query)
+		return m.searchFn(terms)
 	}
 	return nil, nil
 }

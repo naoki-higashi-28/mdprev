@@ -1,9 +1,9 @@
 import { useState } from "react";
+import { useSearch } from "../hooks/useSearch";
+import { useTree } from "../hooks/useTree";
 import { SearchInput } from "./SearchInput";
 import { SearchResults } from "./SearchResults";
 import { TreeNode } from "./TreeNode";
-import { useSearch } from "./useSearch";
-import { useTree } from "./useTree";
 
 interface TreeViewProps {
   selectedPath: string;

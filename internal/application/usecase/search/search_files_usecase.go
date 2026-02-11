@@ -2,6 +2,7 @@ package search
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/naoki-higashi-28/mdprev/internal/domain/model"
 	"github.com/naoki-higashi-28/mdprev/internal/domain/repository"
@@ -28,8 +29,12 @@ func (uc *SearchFilesUseCase) Execute(query string) (SearchResult, error) {
 	if query == "" {
 		return SearchResult{Query: "", Entries: []model.Entry{}}, nil
 	}
+	terms := strings.Fields(query)
+	if len(terms) == 0 {
+		return SearchResult{Query: query, Entries: []model.Entry{}}, nil
+	}
 
-	entries, err := uc.repo.SearchEntries(query)
+	entries, err := uc.repo.SearchEntries(terms)
 	if err != nil {
 		return SearchResult{}, fmt.Errorf("searching entries: %w", err)
 	}

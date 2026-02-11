@@ -77,7 +77,7 @@ func TestFileSystemRepositorySearchEntries(t *testing.T) {
 		t.Fatalf("write hidden guide.md failed: %v", err)
 	}
 
-	entries, err := repo.SearchEntries("guide")
+	entries, err := repo.SearchEntries([]string{"guide"})
 	if err != nil {
 		t.Fatalf("SearchEntries error: %v", err)
 	}
@@ -91,4 +91,37 @@ func TestFileSystemRepositorySearchEntries(t *testing.T) {
 	if entries[0].Path != "docs/guide.markdown" {
 		t.Fatalf("entry path = %q, want docs/guide.markdown", entries[0].Path)
 	}
+
+	t.Run("parent directory match", func(t *testing.T) {
+		got, err := repo.SearchEntries([]string{"docs"})
+		if err != nil {
+			t.Fatalf("SearchEntries error: %v", err)
+		}
+		if len(got) != 1 {
+			t.Fatalf("len(got) = %d, want 1", len(got))
+		}
+		if got[0].Path != "docs/guide.markdown" {
+			t.Fatalf("path = %q, want docs/guide.markdown", got[0].Path)
+		}
+	})
+
+	t.Run("AND search matches both terms", func(t *testing.T) {
+		got, err := repo.SearchEntries([]string{"docs", "guide"})
+		if err != nil {
+			t.Fatalf("SearchEntries error: %v", err)
+		}
+		if len(got) != 1 {
+			t.Fatalf("len(got) = %d, want 1", len(got))
+		}
+	})
+
+	t.Run("AND search returns empty when one term misses", func(t *testing.T) {
+		got, err := repo.SearchEntries([]string{"docs", "zzz"})
+		if err != nil {
+			t.Fatalf("SearchEntries error: %v", err)
+		}
+		if len(got) != 0 {
+			t.Fatalf("len(got) = %d, want 0", len(got))
+		}
+	})
 }

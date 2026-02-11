@@ -12,8 +12,8 @@ import (
 
 func TestSearchHandlerHandleSearch(t *testing.T) {
 	h := NewSearchHandler(searchuc.NewSearchFilesUseCase(&mockTreeRepo{
-		searchFn: func(query string) ([]model.Entry, error) {
-			if query == "" {
+		searchFn: func(terms []string) ([]model.Entry, error) {
+			if len(terms) == 0 {
 				return []model.Entry{}, nil
 			}
 			return []model.Entry{{Type: model.EntryTypeFile, Name: "guide.md", Path: "guide.md", Ext: "md"}}, nil

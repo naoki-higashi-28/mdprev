@@ -16,14 +16,14 @@ import "remark-github-blockquote-alert/alert.css";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { parse as parseYaml } from "yaml";
-import { resolveRelativePath } from "../../shared/lib/resolvePath";
+import { resolveRelativePath } from "../../../shared/lib/resolvePath";
+import { useFileContent } from "../hooks/useFileContent";
 import { CodeBlock } from "./CodeBlock";
 import { FrontmatterTable } from "./FrontmatterTable";
 import { Mermaid } from "./Mermaid";
 import { rehypeHeadingIds } from "./slugify";
 import type { TocEntry } from "./TableOfContents";
 import { TableOfContents } from "./TableOfContents";
-import { useFileContent } from "./useFileContent";
 
 interface MarkdownPreviewProps {
   filePath: string;
@@ -40,18 +40,22 @@ export function MarkdownPreview({
   const contentRef = useRef<HTMLDivElement>(null);
   const [headings, setHeadings] = useState<TocEntry[]>([]);
 
+  const rawContent = content?.value ?? null;
+
   const parsed = useMemo(() => {
-    if (content === null) return null;
-    const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
-    if (!match) return { entries: [], body: content };
+    if (rawContent === null) return null;
+    const match = rawContent.match(
+      /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/,
+    );
+    if (!match) return { entries: [], body: rawContent };
     const data = parseYaml(match[1]);
     const entries =
       data && typeof data === "object" ? Object.entries(data) : [];
     return { entries, body: match[2] };
-  }, [content]);
+  }, [rawContent]);
 
   useLayoutEffect(() => {
-    if (!content || !contentRef.current) return;
+    if (!rawContent || !contentRef.current) return;
     const els = contentRef.current.querySelectorAll("h1, h2, h3, h4, h5, h6");
     const entries: TocEntry[] = [];
     for (const el of els) {
@@ -63,7 +67,7 @@ export function MarkdownPreview({
       });
     }
     setHeadings(entries);
-  }, [content]);
+  }, [rawContent]);
 
   if (!filePath) {
     return (
@@ -107,7 +111,7 @@ export function MarkdownPreview({
         <div ref={scrollRef} className="h-full overflow-y-auto p-6">
           <div className="mb-4 flex items-center gap-1.5">
             <p className="text-sm text-gray-500">{filePath}</p>
-            <CopyMarkdownButton content={content} />
+            <CopyMarkdownButton content={rawContent} />
           </div>
           <div ref={contentRef} className="prose w-full max-w-4xl mx-auto">
             <FrontmatterTable entries={parsed.entries} />
@@ -243,15 +247,17 @@ export function MarkdownPreview({
           </div>
         </div>
       </div>
-      {tocVisible && (
-        <aside className="w-64 shrink-0 border-l border-gray-200 overflow-y-auto p-4">
+      <aside
+        className={`shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out ${tocVisible ? "w-64" : "w-0"}`}
+      >
+        <div className="w-64 h-full border-l border-gray-200 overflow-y-auto p-4">
           <TableOfContents
             headings={headings}
             filePath={filePath}
             scrollRef={scrollRef}
           />
-        </aside>
-      )}
+        </div>
+      </aside>
     </div>
   );
 }

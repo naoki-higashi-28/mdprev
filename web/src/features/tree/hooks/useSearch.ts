@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import type { SearchResponse } from "../../shared/types";
-import { searchFiles } from "./api";
+import { treeApiService } from "../api/api.service";
+import type { SearchResult } from "../model/tree.model";
 
-export function useSearch(query: string): SearchResponse | null {
-  const [result, setResult] = useState<SearchResponse | null>(null);
+export function useSearch(query: string): SearchResult | null {
+  const [result, setResult] = useState<SearchResult | null>(null);
 
   useEffect(() => {
     if (!query) {
@@ -15,7 +15,7 @@ export function useSearch(query: string): SearchResponse | null {
 
     const timer = setTimeout(async () => {
       try {
-        const data = await searchFiles(query);
+        const data = await treeApiService.searchFiles(query);
         if (!cancelled) {
           setResult(data);
         }

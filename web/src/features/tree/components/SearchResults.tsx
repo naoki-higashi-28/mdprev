@@ -1,5 +1,5 @@
 import { File } from "lucide-react";
-import type { TreeEntry } from "../../shared/types";
+import type { TreeEntry } from "../model/tree.model";
 
 interface SearchResultsProps {
   entries: TreeEntry[];

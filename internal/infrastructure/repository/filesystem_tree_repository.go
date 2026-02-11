@@ -86,10 +86,14 @@ func (r *FileSystemRepository) ListEntries(absPath string) ([]model.Entry, error
 	return entries, nil
 }
 
-// SearchEntries searches for markdown files matching the query.
-func (r *FileSystemRepository) SearchEntries(query string) ([]model.Entry, error) {
+// SearchEntries searches for markdown files matching all given terms (AND search).
+// Each term is matched against the full relative path (including parent directories).
+func (r *FileSystemRepository) SearchEntries(terms []string) ([]model.Entry, error) {
 	const maxResults = 100
-	queryLower := strings.ToLower(query)
+	lowerTerms := make([]string, len(terms))
+	for i, t := range terms {
+		lowerTerms[i] = strings.ToLower(t)
+	}
 	var entries []model.Entry
 
 	err := filepath.WalkDir(r.root, func(path string, d os.DirEntry, err error) error {
@@ -112,15 +116,19 @@ func (r *FileSystemRepository) SearchEntries(query string) ([]model.Entry, error
 		if !allowedMarkdownExts[ext] {
 			return nil
 		}
-		if !strings.Contains(strings.ToLower(name), queryLower) {
-			return nil
-		}
 
 		relPath, err := filepath.Rel(r.root, path)
 		if err != nil {
 			return nil
 		}
 		relPath = filepath.ToSlash(relPath)
+		relPathLower := strings.ToLower(relPath)
+
+		for _, term := range lowerTerms {
+			if !strings.Contains(relPathLower, term) {
+				return nil
+			}
+		}
 
 		info, err := d.Info()
 		if err != nil {

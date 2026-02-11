@@ -1,8 +1,8 @@
 import { ChevronDown, ChevronRight, File, Folder } from "lucide-react";
 import { useState } from "react";
 import useSWR from "swr";
-import type { TreeEntry } from "../../shared/types";
-import { fetchTree } from "./api";
+import { treeApiService } from "../api/api.service";
+import type { TreeEntry } from "../model/tree.model";
 
 interface TreeNodeProps {
   entry: TreeEntry;
@@ -21,7 +21,7 @@ export function TreeNode({
 
   const { data } = useSWR(
     entry.type === "dir" && expanded ? ["tree", entry.path] : null,
-    ([, p]) => fetchTree(p),
+    ([, p]) => treeApiService.fetchTree(p),
   );
   const children = data?.entries ?? [];
 

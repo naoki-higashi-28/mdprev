@@ -1,9 +1,13 @@
 import { useEffect, useRef } from "react";
 import useSWR, { useSWRConfig } from "swr";
-import { fetchFile } from "./api";
+import { getWatchApiService } from "../../../shared/api/watch-api-service";
+import { previewApiService } from "../api/api.service";
+import type { FileContent } from "../model/file-content.model";
+
+const watchApiService = getWatchApiService();
 
 interface UseFileContentResult {
-  content: string | null;
+  content: FileContent | null;
   error: string | null;
   loading: boolean;
 }
@@ -14,7 +18,7 @@ export function useFileContent(path: string): UseFileContentResult {
 
   const { data, error, isLoading } = useSWR(
     path ? ["file", path] : null,
-    ([, p]) => fetchFile(p),
+    ([, p]) => previewApiService.fetchFile(p),
   );
 
   useEffect(() => {
@@ -22,22 +26,13 @@ export function useFileContent(path: string): UseFileContentResult {
   }, [path]);
 
   useEffect(() => {
-    const eventSource = new EventSource("/api/watch");
-
-    eventSource.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        if (msg.type === "file_change" && msg.path === pathRef.current) {
-          mutate(["file", pathRef.current]);
-        }
-      } catch {
-        // Ignore non-JSON messages
+    const unsubscribe = watchApiService.subscribe((message) => {
+      if (message.type === "file_change" && message.path === pathRef.current) {
+        mutate(["file", pathRef.current]);
       }
-    };
+    });
 
-    return () => {
-      eventSource.close();
-    };
+    return unsubscribe;
   }, [mutate]);
 
   return {

@@ -1,8 +1,8 @@
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useState } from "react";
-import { PathBar } from "../features/pathbar/PathBar";
-import { MarkdownPreview } from "../features/preview/MarkdownPreview";
-import { TreeView } from "../features/tree/TreeView";
+import { PathBar } from "../features/pathbar/components/PathBar";
+import { MarkdownPreview } from "../features/preview/components/MarkdownPreview";
+import { TreeView } from "../features/tree/components/TreeView";
 import { useSelectedPath } from "../shared/hooks/useSelectedPath";
 
 export function HomePage() {
@@ -26,14 +26,16 @@ export function HomePage() {
         </button>
       </PathBar>
       <div className="flex min-h-0 flex-1">
-        {sidebarOpen && (
-          <div className="w-64 shrink-0 border-r border-gray-200 bg-white">
+        <div
+          className={`shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out ${sidebarOpen ? "w-64" : "w-0"}`}
+        >
+          <div className="w-64 h-full border-r border-gray-200 bg-white">
             <TreeView
               selectedPath={selectedPath}
               onSelectFile={setSelectedPath}
             />
           </div>
-        )}
+        </div>
         <div className="flex-1 overflow-hidden bg-white">
           <MarkdownPreview
             filePath={selectedPath}

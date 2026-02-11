@@ -1,26 +1,19 @@
 import { SiGithub } from "@icons-pack/react-simple-icons";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useRootDirectoryInfo } from "../hooks/useRootDirectoryInfo";
 
 interface PathBarProps {
   children?: ReactNode;
 }
 
 export function PathBar({ children }: PathBarProps) {
-  const [name, setName] = useState("");
-
-  useEffect(() => {
-    fetch("/api/info")
-      .then((res) => res.json())
-      .then((data: { name: string }) => setName(data.name))
-      .catch(() => {});
-  }, []);
+  const rootDirectoryInfo = useRootDirectoryInfo();
 
   return (
     <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2">
       {children}
       <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-800">
-        {name}
+        {rootDirectoryInfo?.rootDirectoryName ?? ""}
       </span>
       {import.meta.env.VITE_GITHUB_URL && (
         <a

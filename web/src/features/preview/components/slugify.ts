@@ -1,4 +1,3 @@
-/** Strip inline markdown syntax and HTML tags to get plain text. */
 function stripMarkup(text: string): string {
   return (
     text
@@ -26,7 +25,7 @@ export function stripTags(text: string): string {
 export function slugify(text: string): string {
   return stripMarkup(text)
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s_-]/gu, "")
+    .replace(/[^\p{L}\p{N}\p{Emoji}\s_-]/gu, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
@@ -42,27 +41,28 @@ export function createSlugifier(): (text: string) => string {
   };
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: HAST node types are complex; using any for simplicity
-function getHastText(node: any): string {
-  if (node.type === "text") return node.value || "";
+interface HastNode {
+  type: string;
+  value?: string;
+  tagName?: string;
+  properties?: Record<string, unknown>;
+  children?: HastNode[];
+}
+
+function getHastText(node: HastNode): string {
+  if (node.type === "text") return node.value ?? "";
   if (node.children) return node.children.map(getHastText).join("");
   return "";
 }
 
 export function rehypeHeadingIds() {
-  // biome-ignore lint/suspicious/noExplicitAny: HAST tree type
-  return (tree: any) => {
-    const counts = new Map<string, number>();
+  return (tree: HastNode) => {
+    const slugify = createSlugifier();
 
-    // biome-ignore lint/suspicious/noExplicitAny: HAST node type
-    function walk(node: any) {
-      if (node.type === "element" && /^h[1-6]$/.test(node.tagName)) {
-        const text = getHastText(node);
-        const base = slugify(text);
-        const count = counts.get(base) ?? 0;
-        counts.set(base, count + 1);
+    function walk(node: HastNode) {
+      if (node.type === "element" && /^h[1-6]$/.test(node.tagName ?? "")) {
         if (!node.properties) node.properties = {};
-        node.properties.id = count === 0 ? base : `${base}-${count}`;
+        node.properties.id = slugify(getHastText(node));
       }
       if (node.children) {
         for (const child of node.children) {
