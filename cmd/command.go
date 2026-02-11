@@ -1,22 +1,17 @@
 package cmd
 
 import (
-	"context"
 	"embed"
 	"flag"
 	"fmt"
 	"io/fs"
 	"log"
-	"net"
-	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"time"
 
 	"github.com/naoki-higashi-28/mdprev/internal/dependency"
-	"github.com/naoki-higashi-28/mdprev/internal/infrastructure"
+	"github.com/naoki-higashi-28/mdprev/internal/infrastructure/server"
 )
 
 //go:embed all:dist
@@ -24,98 +19,104 @@ var distFS embed.FS
 
 var defaultPort = "0"
 
-func openBrowser(url string) {
-	var cmd string
-	var args []string
+const (
+	defaultAutoCloseGrace  = 5 * time.Second
+	defaultShutdownTimeout = 5 * time.Second
+)
 
-	switch runtime.GOOS {
-	case "darwin":
-		cmd = "open"
-	case "linux":
-		cmd = "xdg-open"
-	case "windows":
-		cmd = "rundll32"
-		args = []string{"url.dll,FileProtocolHandler"}
-	default:
-		return
-	}
-
-	args = append(args, url)
-	if err := exec.Command(cmd, args...).Start(); err != nil {
-		log.Printf("Failed to open browser: %v", err)
-	}
+type options struct {
+	host      string
+	port      string
+	open      bool
+	autoClose bool
+	root      string
 }
 
-func Execute() {
+func parseOptions() options {
 	host := flag.String("host", "127.0.0.1", "bind host")
 	port := flag.String("port", defaultPort, "listen port (0 for random)")
 	open := flag.Bool("open", true, "open browser automatically")
 	autoClose := flag.Bool("auto-close", true, "shutdown when all connections close")
 	flag.Parse()
 
-	// Determine root directory
 	root := "."
 	if flag.NArg() > 0 {
 		root = flag.Arg(0)
 	}
+
+	return options{
+		host:      *host,
+		port:      *port,
+		open:      *open,
+		autoClose: *autoClose,
+		root:      root,
+	}
+}
+
+func resolveRoot(root string) (string, error) {
 	absRoot, err := filepath.Abs(root)
 	if err != nil {
-		log.Fatalf("Failed to resolve root path: %v", err)
+		return "", fmt.Errorf("resolving root path: %w", err)
 	}
 
-	// Verify root directory exists
 	info, err := os.Stat(absRoot)
-	if err != nil || !info.IsDir() {
-		log.Fatalf("Root path is not a valid directory: %s", absRoot)
+	if err != nil {
+		return "", fmt.Errorf("stating root path: %w", err)
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("root path is not a valid directory: %s", absRoot)
 	}
 
-	// Setup dependencies
+	return absRoot, nil
+}
+
+func subDistFS() (fs.FS, error) {
 	sub, err := fs.Sub(distFS, "dist")
 	if err != nil {
-		log.Fatalf("Failed to create sub filesystem: %v", err)
+		return nil, fmt.Errorf("creating sub filesystem: %w", err)
+	}
+	return sub, nil
+}
+
+func setupConnectionTracker(autoClose bool) (*server.ConnectionTracker, func(), func()) {
+	if !autoClose {
+		return nil, nil, nil
 	}
 
-	var onConnect, onDisconnect func()
-	var tracker *infrastructure.ConnectionTracker
-	if *autoClose {
-		tracker = infrastructure.NewConnectionTracker(5 * time.Second)
-		onConnect = tracker.Add
-		onDisconnect = tracker.Remove
-	}
+	tracker := server.NewConnectionTracker(defaultAutoCloseGrace)
+	return tracker, tracker.Add, tracker.Remove
+}
 
-	mux, watcher, err := dependency.NewServeMux(absRoot, sub, onConnect, onDisconnect)
+func execute() error {
+	opts := parseOptions()
+
+	absRoot, err := resolveRoot(opts.root)
 	if err != nil {
-		log.Fatalf("Failed to initialize: %v", err)
+		return err
 	}
-	defer watcher.Close()
 
-	// Start server
-	addr := net.JoinHostPort(*host, *port)
-	ln, err := net.Listen("tcp", addr)
+	staticFS, err := subDistFS()
 	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
+		return err
 	}
 
-	url := fmt.Sprintf("http://%s", ln.Addr().String())
-	fmt.Printf("mdprev serving %s on %s\n", absRoot, url)
+	tracker, onConnect, onDisconnect := setupConnectionTracker(opts.autoClose)
 
-	if *open {
-		openBrowser(url)
+	mux, subscriber, err := dependency.NewServerMux(absRoot, staticFS, onConnect, onDisconnect)
+	if err != nil {
+		return fmt.Errorf("initializing server dependencies: %w", err)
 	}
+	runner := server.NewHTTPServerRunner(server.RunnerConfig{
+		Host:            opts.host,
+		Port:            opts.port,
+		OpenBrowser:     opts.open,
+		ShutdownTimeout: defaultShutdownTimeout,
+	}, tracker)
+	return runner.Run(absRoot, mux, subscriber)
+}
 
-	srv := &http.Server{Handler: mux}
-
-	if tracker != nil {
-		go func() {
-			<-tracker.Done()
-			fmt.Println("\nNo active connections. Shutting down...")
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			srv.Shutdown(ctx)
-		}()
-	}
-
-	if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("Server failed: %v", err)
+func Execute() {
+	if err := execute(); err != nil {
+		log.Fatalf("Failed to run mdprev: %v", err)
 	}
 }
